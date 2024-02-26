@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model App_user {
+  id                Int           @id @default(autoincrement())
+  password_hash     String
+  user_role         Int
+  personal_data     Int
+  personal_data_rel Personal_data @relation("app_user_personal_dataTopersonal_data", fields: [personal_data], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_personal_data")
+  user_role_rel     User_role     @relation("app_user_user_roleTouser_role", fields: [user_role], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_user_role")
+  cart              Cart?
+  restaurant        Restaurant?
+  user_orders       User_order[]
+
+  @@map("app_user")
+}
+
+model Cart {
+  id       Int      @id @default(autoincrement())
+  user_id  Int      @unique
+  app_user App_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cart_app_user")
+
+  @@map("cart")
+}
+
+model Cart_item {
+  id             Int            @id @default(autoincrement())
+  cart_id        Int
+  item_info      Int
+  item_quantity  Int
+  menu_item_info Menu_item_info @relation(fields: [item_info], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cart_menu_item_info")
+
+  @@index([cart_id], map: "idx_cart_item_cart_id")
+  @@index([cart_id, item_info], map: "idx_cart_item_cart_info")
+  @@index([item_info], map: "idx_cart_item_item_info")
+  @@map("cart_item")
+}
+
+model Courier {
+  id                Int           @id @default(autoincrement())
+  personal_data     Int
+  salary            Decimal       @db.Decimal(8, 2)
+  restaurant        Int
+  active            Boolean       @default(true)
+  busy              Boolean       @default(true)
+  personal_data_rel Personal_data @relation("courier_personal_dataTopersonal_data", fields: [personal_data], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier_personal_data")
+  restaurant_rel    Restaurant    @relation("courier_restaurantTorestaurant", fields: [restaurant], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier_restaurant")
+  user_orders       User_order[]
+
+  @@index([active], map: "idx_courier_active")
+  @@index([active, busy], map: "idx_courier_active_busy")
+  @@index([personal_data], map: "idx_courier_personal_data")
+  @@index([busy], map: "idx_courier_busy")
+  @@index([restaurant], map: "idx_courier_restaurant")
+  @@map("courier")
+}
+
+model Menu {
+  id               Int              @id @default(autoincrement())
+  item_name        String
+  small_size_price Decimal          @db.Decimal(5, 2)
+  description      String?
+  item_image       String?
+  menu_item_infos  Menu_item_info[]
+
+  @@index([item_name], map: "idx_item_name")
+  @@index([small_size_price], map: "idx_small_size_price")
+  @@map("menu")
+}
+
+model Menu_item_info {
+  id             Int           @id @default(autoincrement())
+  menu_item_id   Int
+  menu_item_size Int           @db.SmallInt
+  cart_items     Cart_item[]
+  size_category  Size_category @relation(fields: [menu_item_size], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_menu_ii_size_category")
+  menu           Menu          @relation(fields: [menu_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_menu_item_info_menu")
+  order_items    Order_item[]
+
+  @@map("menu_item_info")
+}
+
+model Order_item {
+  id               Int            @id @default(autoincrement())
+  order_id         Int
+  item_info        Int
+  item_quantity    Int
+  item_total_price Decimal        @db.Decimal(5, 2)
+  menu_item_info   Menu_item_info @relation(fields: [item_info], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_item_menu_item_info")
+  user_order       User_order     @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_item_user_order")
+
+  @@index([order_id, item_info], map: "idx_order_item_order_item_info")
+  @@map("order_item")
+}
+
+model Personal_data {
+  id            Int        @id @default(autoincrement())
+  full_name     String
+  email         String     @unique
+  phone_number  String     @unique
+  date_of_birth DateTime?  @db.Date
+  app_users     App_user[] @relation("app_user_personal_dataTopersonal_data")
+  couriers      Courier[]  @relation("courier_personal_dataTopersonal_data")
+
+  @@map("personal_data")
+}
+
+model Restaurant {
+  id                  Int       @id @default(autoincrement())
+  address             String    @unique
+  location            String
+  coverage_area       String
+  restaurant_admin    Int       @unique
+  open_time           DateTime  @db.Timestamp(6)
+  close_time          DateTime  @db.Timestamp(6)
+  delivery_start_time DateTime  @db.Timestamp(6)
+  delivery_end_time   DateTime  @db.Timestamp(6)
+  couriers            Courier[] @relation("courier_restaurantTorestaurant")
+  app_user            App_user  @relation(fields: [restaurant_admin], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_restaurant_app_user")
+
+  @@map("restaurant")
+}
+
+model Size_category {
+  id              Int              @id @default(autoincrement()) @db.SmallInt
+  item_size       Decimal          @db.Decimal(4, 2)
+  markup          Decimal          @db.Decimal(4, 2)
+  menu_item_infos Menu_item_info[]
+
+  @@index([item_size, markup], map: "idx_item_size_markup")
+  @@map("size_category")
+}
+
+model User_order {
+  id            Int          @id @default(autoincrement())
+  date_of_order DateTime     @db.Date
+  user_id       Int
+  address       String
+  courier_id    Int
+  order_items   Order_item[]
+  app_user      App_user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_order_app_user")
+  courier       Courier      @relation(fields: [courier_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_order_courier")
+
+  @@map("user_order")
+}
+
+model User_role {
+  id        Int        @id @default(autoincrement())
+  role_name String
+  app_users App_user[] @relation("app_user_user_roleTouser_role")
+
+  @@map("user_role")
+}

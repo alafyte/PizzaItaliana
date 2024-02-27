@@ -7,6 +7,13 @@ export enum UserRoles {
     COURIER
 }
 
+export enum OrderStatus {
+    IN_PROGRESS = "В работе",
+    READY = "Готов",
+    DELIVERING = "Доставляется",
+    DONE = "Завершён"
+}
+
 export type Restaurant = {
     id?: number,
     address: string | null,

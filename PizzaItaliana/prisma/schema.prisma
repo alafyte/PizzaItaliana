@@ -139,9 +139,10 @@ model Size_category {
 
 model User_order {
   id            Int          @id @default(autoincrement())
-  date_of_order DateTime     @db.Date
+  date_of_order DateTime     @db.Timestamp
   user_id       Int
   address       String
+  status        String
   courier_id    Int
   order_items   Order_item[]
   app_user      App_user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_order_app_user")

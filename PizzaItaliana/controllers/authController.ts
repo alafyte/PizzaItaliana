@@ -93,7 +93,8 @@ const login = async (req: Request, res: Response) => {
             id: current_user.id,
             full_name: current_user.personal_data_rel.full_name,
             email: current_user.personal_data_rel.email,
-            phone: current_user.personal_data_rel.phone_number,
+            phone_number: current_user.personal_data_rel.phone_number,
+            date_of_birth: current_user.personal_data_rel.date_of_birth,
             role_name: current_user.user_role_rel.role_name
         };
 

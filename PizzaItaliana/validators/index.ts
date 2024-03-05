@@ -14,7 +14,7 @@ export const menuDataValidator = [
         .isLength({max: 499}).withMessage('Описание товара не должно превышать 500 символов'),
 ]
 
-export const personalDataValidator = [
+export const registrationDataValidator = [
     body("full_name")
         .trim()
         .notEmpty().withMessage("ФИО не должно быть пустым")
@@ -46,6 +46,31 @@ export const personalDataValidator = [
         .trim()
         .notEmpty().withMessage("Пароль не может быть пустой")
         .isLength({min: 8, max: 16}).withMessage("Длина пароля должна быть в пределах от 8 до 16 символов")
+]
+export const personalDataValidator = [
+    body("full_name")
+        .trim()
+        .notEmpty().withMessage("ФИО не должно быть пустым")
+        .isLength({min: 1, max: 100}).withMessage('ФИО должно содержать от 1 до 100 символов'),
+    body("email")
+        .trim()
+        .notEmpty().withMessage('Email не должен быть пустым')
+        .isEmail().withMessage("Неккоректный Email-адрес"),
+    body("phone_number")
+        .trim()
+        .notEmpty().withMessage('Номер телефона не может быть пустым')
+        .matches('^\\+375\\(\\d{2}\\)\\d{3}-\\d{2}-\\d{2}$').withMessage("Неверный формат номера телефона"),
+    body("date_of_birth")
+        .trim()
+        .notEmpty().withMessage("Дата рождения не может быть пустой")
+        .custom(value => {
+            let enteredDate = new Date(value);
+            let today = new Date();
+            if (enteredDate > today) {
+                throw new Error("Неверная дата рождения");
+            }
+            return true;
+        }).withMessage("Неверная дата рождения"),
 ]
 
 export const restaurantDataValidator = [

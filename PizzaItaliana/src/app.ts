@@ -10,6 +10,7 @@ import couriersRouter from "../routes/couriersRouter";
 import menuRouter from "../routes/menuRouter";
 import cartRouter from "../routes/cartRouter";
 import orderRouter from "../routes/orderRouter";
+import userRouter from "../routes/userRouter";
 import cors from "cors";
 
 const app = express();
@@ -43,5 +44,6 @@ app.use('/couriers', couriersRouter);
 app.use('/menu', menuRouter);
 app.use('/cart', cartRouter);
 app.use('/order', orderRouter);
+app.use('/user', userRouter);
 
 app.listen(3000, () => console.log('Server is running at http://localhost:3000'));

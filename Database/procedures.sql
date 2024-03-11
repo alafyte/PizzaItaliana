@@ -286,9 +286,11 @@ BEGIN
 
 
     IF (V_DELIVERY_START_TIME < V_DELIVERY_END_TIME AND
-        (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' <= V_DELIVERY_START_TIME OR CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' >= V_DELIVERY_END_TIME)) OR
+        (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' <= V_DELIVERY_START_TIME OR
+         CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' >= V_DELIVERY_END_TIME)) OR
        (V_DELIVERY_START_TIME > V_DELIVERY_END_TIME AND
-        (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' <= V_DELIVERY_START_TIME AND CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' >= V_DELIVERY_END_TIME)) THEN
+        (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' <= V_DELIVERY_START_TIME AND
+         CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Minsk' >= V_DELIVERY_END_TIME)) THEN
         RAISE EXCEPTION 'Время заказа не входит в промежуток работы службы доставки.';
     END IF;
 
@@ -385,7 +387,7 @@ $$
 DECLARE
 
     CART_REC     CART_RECORD;
-    V_ORDER_ID     INT;
+    V_ORDER_ID   INT;
     V_TOTAL_COST NUMERIC(5, 2);
 BEGIN
     V_ORDER_ID := CREATE_USER_ORDER(P_USER_LATITUDE, P_USER_LONGITUDE, P_USER_ID, P_ADDRESS);
@@ -419,6 +421,41 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION GET_MENU_ITEMS_PAGE(
+    P_PAGE_NUMBER INT,
+    P_PAGE_SIZE INT
+)
+    RETURNS TABLE
+            (
+                ID               INT,
+                ITEM_NAME        TEXT,
+                SMALL_SIZE_PRICE NUMERIC(5, 2),
+                DESCRIPTION      TEXT,
+                ITEM_IMAGE       TEXT
+            )
+AS
+$$
+DECLARE
+    L_START_INDEX INT;
+    L_END_INDEX   INT;
+BEGIN
+    L_START_INDEX := (P_PAGE_NUMBER - 1) * P_PAGE_SIZE + 1;
+    L_END_INDEX := P_PAGE_NUMBER * P_PAGE_SIZE;
+
+    RETURN QUERY SELECT MenuRN.id, MenuRN.item_name, MenuRN.small_size_price, MenuRN.description, MenuRN.item_image
+                 FROM (SELECT M.*,
+                              ROW_NUMBER() OVER (ORDER BY M.ID) AS ROW_NUM
+                       FROM MENU M) as MenuRN
+                 WHERE ROW_NUM >= L_START_INDEX
+                   AND ROW_NUM <= L_END_INDEX;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Произошла ошибка: %', SQLERRM;
+END
+$$ LANGUAGE plpgsql;
+
+
 --     PROCEDURE DELETE_ORPHAN_USER_ORDERS IS
 --     BEGIN
 --         FOR user_order_rec IN (SELECT uo.ID
@@ -430,9 +467,6 @@ $$ LANGUAGE plpgsql;
 --             END LOOP;
 --         COMMIT;
 --     END DELETE_ORPHAN_USER_ORDERS;
-
-select * from public.move_cart_items_to_order(53.921494, 27.605274, 1, 'проспект Независимости, 76А, кв. 3'::text, 35);
-
 
 
 

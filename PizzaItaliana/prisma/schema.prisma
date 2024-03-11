@@ -62,11 +62,12 @@ model Courier {
 }
 
 model Menu {
-  id               Int              @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   item_name        String
-  small_size_price Decimal          @db.Decimal(5, 2)
+  small_size_price Decimal           @db.Decimal(5, 2)
   description      String?
   item_image       String?
+  ingredients      Ingredient_menu[] @relation("ingredient_menu_menuTomenu")
   menu_item_infos  Menu_item_info[]
 
   @@index([item_name], map: "idx_item_name")
@@ -139,11 +140,11 @@ model Size_category {
 
 model User_order {
   id            Int          @id @default(autoincrement())
-  date_of_order DateTime     @db.Timestamp
+  date_of_order DateTime     @db.Timestamp(6)
   user_id       Int
   address       String
-  status        String
   courier_id    Int
+  status        String       @default("В работе")
   order_items   Order_item[]
   app_user      App_user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_order_app_user")
   courier       Courier      @relation(fields: [courier_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_order_courier")
@@ -157,4 +158,23 @@ model User_role {
   app_users App_user[] @relation("app_user_user_roleTouser_role")
 
   @@map("user_role")
+}
+
+model Ingredient {
+  id              Int               @id @default(autoincrement())
+  name            String
+  removable       Boolean           @default(false)
+  ingredient_menu Ingredient_menu[] @relation("ingredient_menu_ingredientToingredient")
+
+  @@map("ingredient")
+}
+
+model Ingredient_menu {
+  ingredient            Int
+  menu                  Int
+  ingredient_ingredient Ingredient @relation("ingredient_menu_ingredientToingredient", fields: [ingredient], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menu_menu             Menu       @relation("ingredient_menu_menuTomenu", fields: [menu], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([ingredient, menu])
+  @@map("ingredient_menu")
 }

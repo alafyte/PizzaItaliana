@@ -1,9 +1,9 @@
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import {CreateOrderType, OrderStatus} from "../types";
 import {getAllObjectsPage} from "../utils";
 
-const prisma = new PrismaClient();
+
 const getUserOrders = async (req: Request, res: Response) => {
     try {
         let pageQuery: string = req.query.page ? req.query.page.toString() : "1";
@@ -39,14 +39,22 @@ const getUserOrders = async (req: Request, res: Response) => {
             }
         });
 
-        for (let order of orders) {
+        let resultOrders = [];
+        let pageSize = 3;
+        for (let i = 0; i < orders.length; i++) {
+            if (i >= pageSize * (page - 1) && i < pageSize * page) {
+                resultOrders.push(orders[i]);
+            }
+        }
+
+        for (let order of resultOrders) {
             let result_cost = 0;
             order.order_items.forEach(o => result_cost += Number(o.item_total_price));
             //@ts-ignore
             order.total_price = result_cost.toFixed(2);
         }
 
-        let result = await getAllObjectsPage(orders, page, 3);
+        let result = await getAllObjectsPage(resultOrders, orders.length, page, 3);
 
         res.status(200).json(result)
     } catch (err) {

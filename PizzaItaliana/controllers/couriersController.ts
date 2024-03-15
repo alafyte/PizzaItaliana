@@ -1,9 +1,7 @@
 import {validationResult} from "express-validator";
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import {stringToDate, findClosestDateObject} from "../utils";
-
-const prisma = new PrismaClient();
 
 const getAll = async (req: Request, res: Response) => {
     try {

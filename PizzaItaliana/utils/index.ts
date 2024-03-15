@@ -1,13 +1,13 @@
 import {User_order} from "@prisma/client";
 
-export const stringToDate = (str: string) : Date => {
+export const stringToDate = (str: string): Date => {
     const pattern = /(\d{2})-(\d{2})-(\d{4})/;
     return new Date(str.replace(pattern, '$3-$2-$1'));
 }
 
 
 export const findClosestDateObject = (objects: User_order[]) => {
-    const targetDateTime =  new Date();
+    const targetDateTime = new Date();
     let closestDateTime = new Date(objects[0].date_of_order.toISOString().slice(0, -1));
     let closestIndex = 0;
     // @ts-ignore
@@ -26,14 +26,8 @@ export const findClosestDateObject = (objects: User_order[]) => {
     return objects[closestIndex].id;
 }
 
-export const getAllObjectsPage = async (objects: any, pageNumber: number, pageSize: number) => {
-    let result = [];
-    for (let i = 0; i < objects.length; i++) {
-        if (i >= pageSize * (pageNumber - 1) && i < pageSize * pageNumber) {
-            result.push(objects[i]);
-        }
-    }
-    let pagesCount = Math.ceil(objects.length / pageSize);
+export const getAllObjectsPage = async (objects: any, objectsLength: number, pageNumber: number, pageSize: number) => {
+    let pagesCount = Math.ceil(objectsLength / pageSize);
 
     let hasOtherPages = pagesCount !== 1;
     let hasNext = +pageNumber !== pagesCount;
@@ -47,7 +41,7 @@ export const getAllObjectsPage = async (objects: any, pageNumber: number, pageSi
         pageRange.push(i);
     }
     return {
-        objects: result,
+        objects: objects,
         paginator: {
             pagesCount: pagesCount,
             currentPage: +pageNumber,

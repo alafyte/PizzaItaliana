@@ -1,8 +1,6 @@
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import {CartItemType} from "../types";
-
-const prisma = new PrismaClient();
 
 const getUserCartInfo = async (req: Request, res: Response) => {
     try {

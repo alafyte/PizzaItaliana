@@ -1,14 +1,13 @@
 import {Request, Response} from 'express';
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import {App_user, PrismaClient} from "@prisma/client";
+import {App_user} from "@prisma/client";
+import {prisma} from "../config";
 import {validationResult} from "express-validator";
 import {secret} from "../config";
 import {UserRoles} from "../types";
 import {stringToDate} from "../utils";
 
-
-const prisma = new PrismaClient();
 
 const generateAccessToken = (user : App_user): string => {
     return jwt.sign(user, secret.secret, {expiresIn: "72h"})

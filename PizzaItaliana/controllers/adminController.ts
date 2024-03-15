@@ -1,11 +1,9 @@
 import bcrypt from "bcryptjs";
 import {validationResult} from "express-validator";
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import {UserRoles} from "../types";
 import {stringToDate} from "../utils";
-
-const prisma = new PrismaClient();
 
 const createNewRestAdmin = async (req : Request, res : Response) => {
     try {

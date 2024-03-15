@@ -1,12 +1,12 @@
 import {validationResult} from "express-validator";
 import fs from 'fs';
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import {FeatureCollectionType, FeatureType, FindNearestResultType, OrderStatus, Restaurant, UserRoles} from "../types";
 import path from "path";
 import {getAllObjectsPage} from "../utils";
 
-const prisma = new PrismaClient();
+
 const dir_file = path.join(process.cwd(), 'data_dir', 'data.json');
 
 const getAll = async (req: Request, res: Response) => {
@@ -38,7 +38,7 @@ const getAll = async (req: Request, res: Response) => {
 
             result_collection.push({
                 id: restaurants[i].id,
-                address:restaurants[i].address,
+                address: restaurants[i].address,
                 open_time: restaurants[i].open_time,
                 close_time: restaurants[i].close_time,
                 delivery_start_time: restaurants[i].delivery_start_time,
@@ -179,7 +179,7 @@ const getRestaurantByAdmin = async (req: Request, res: Response) => {
         let orders = await prisma.user_order.findMany({
             where: {
                 AND: [
-                    {courier: { restaurant: rest.id}},
+                    {courier: {restaurant: rest.id}},
                     {status: {not: OrderStatus.DONE}}
                 ]
             },
@@ -215,14 +215,8 @@ const getRestaurantByAdmin = async (req: Request, res: Response) => {
         });
 
 
-        for (let order of orders) {
-            let result_price = 0;
-            order.order_items.forEach(o => result_price += Number(o.item_total_price));
-            // @ts-ignore
-            order.total_price = result_price.toFixed(2);
-        }
-
-        let result = await getAllObjectsPage(orders, page, 3);
+        let resultOrders = getOrdersByPage(orders, page);
+        let result = await getAllObjectsPage(resultOrders, orders.length, page, 3);
 
         res.status(200).json({
             restaurant: rest,
@@ -259,7 +253,7 @@ const getRestaurantArchive = async (req: Request, res: Response) => {
         let orders = await prisma.user_order.findMany({
             where: {
                 AND: [
-                    {courier: { restaurant: rest.id}},
+                    {courier: {restaurant: rest.id}},
                     {status: OrderStatus.DONE}
                 ]
             },
@@ -294,17 +288,11 @@ const getRestaurantArchive = async (req: Request, res: Response) => {
             }
         });
 
+        let resultOrders = getOrdersByPage(orders, page);
 
-        for (let order of orders) {
-            let result_price = 0;
-            order.order_items.forEach(o => result_price += Number(o.item_total_price));
-            // @ts-ignore
-            order.total_price = result_price.toFixed(2);
-        }
+        let result = await getAllObjectsPage(resultOrders, orders.length, page, 3);
 
-        let result = await getAllObjectsPage(orders, page, 3);
-
-        res.status(200).json( result);
+        res.status(200).json(result);
     } catch (err) {
         return res.status(422).json({error: [{msg: "Ошибка при получении заказов ресторана"}]})
     }
@@ -496,6 +484,24 @@ const findNearest = async (userLatitude: number, userLongitude: number) => {
 const findAll = async (): Promise<Restaurant[]> => {
     return prisma.$queryRaw`SELECT * FROM public.get_restaurants_info;`;
 }
+
+const getOrdersByPage = (orders: any, page: number) => {
+    let resultOrders = [];
+    let pageSize = 3;
+    for (let i = 0; i < orders.length; i++) {
+        if (i >= pageSize * (page - 1) && i < pageSize * page) {
+            resultOrders.push(orders[i]);
+        }
+    }
+
+    for (let order of resultOrders) {
+        let result_cost = 0;
+        order.order_items.forEach((o: any) => result_cost += Number(o.item_total_price));
+        order.total_price = result_cost.toFixed(2);
+    }
+    return resultOrders;
+}
+
 
 export default {
     getAll: getAll,

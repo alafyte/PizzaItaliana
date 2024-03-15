@@ -129,3 +129,10 @@ export const courierDataValidator = [
         .notEmpty().withMessage("Запрлата не может быть пустой")
         .isFloat({min: 10, max: 1000000}).withMessage("Зарплата должна быть указана числом в пределах от 10 до 1000000")
 ]
+
+export const ingredientDataValidator = [
+    body('ingredient_name')
+        .trim()
+        .notEmpty().withMessage("Название ингредиента не должно быть пустым")
+        .isLength({min: 1, max: 100}).withMessage('Название ингредиента должно содержать от 1 до 100 символов'),
+]

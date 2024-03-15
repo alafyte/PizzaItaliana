@@ -2,11 +2,10 @@ import path from "path";
 import upload from "../upload";
 import {validationResult} from "express-validator";
 import {Request, Response} from 'express';
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../config";
 import fs from "fs";
 import {getAllObjectsPage} from "../utils";
 
-const prisma = new PrismaClient();
 
 const getAll = async (req: Request, res: Response) => {
     try {
@@ -18,8 +17,9 @@ const getAll = async (req: Request, res: Response) => {
         } else {
             page = parseInt(pageQuery, 10);
         }
-        let products = await prisma.menu.findMany();
-        const paginator = await getAllObjectsPage(products, page, 8);
+        let products = await getProductsByPageQuery(page, 8);
+        let productsLength = await prisma.menu.count();
+        const paginator = await getAllObjectsPage(products, productsLength, page, 8);
         res.status(200).json(paginator);
     } catch (err) {
         return res.status(500).json({error: [{msg: "Ошибка при отображении товаров"}]})
@@ -49,7 +49,10 @@ const getProductDetails = async (req: Request, res: Response) => {
         }
         let id = parseInt(req.params['productId'], 10);
         let product = await prisma.menu.findUnique({
-            where: {id: id}
+            where: {id: id},
+            include: {
+                ingredients: true
+            }
         });
         const sizes = await prisma.size_category.findMany({
             select: {
@@ -63,7 +66,6 @@ const getProductDetails = async (req: Request, res: Response) => {
                 markup: true
             }
         });
-        //prices = JSON.stringify(prices);
 
         res.status(200).json({
             product: product,
@@ -191,6 +193,15 @@ const deleteProduct = async (req: Request, res: Response) => {
     } catch (err) {
         return res.status(422).json({error: [{msg: "Ошибка при удалении товара"}]});
     }
+}
+
+const getProductsByPageQuery = (page: number, pageSize: number) => {
+    let query = `SELECT * FROM
+        public.GET_MENU_ITEMS_PAGE(
+        P_PAGE_NUMBER => ${page},
+        P_PAGE_SIZE => ${pageSize});`;
+
+    return prisma.$queryRawUnsafe(`${query}`);
 }
 
 export default {

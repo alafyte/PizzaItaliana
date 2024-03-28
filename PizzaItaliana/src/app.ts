@@ -13,9 +13,67 @@ import orderRouter from "../routes/orderRouter";
 import userRouter from "../routes/userRouter";
 import ingredientRouter from "../routes/ingredientRouter";
 import cors from "cors";
+import {Socket} from "socket.io";
+import {prisma} from '../config';
 
 const app = express();
 
+const http = require("http").Server(app);
+const socketIO = require('socket.io')(http, {
+    cors: {
+        origin: "http://localhost:3006"
+    }
+});
+
+const clientSockets: {[key: string]: string} = {};
+socketIO.on('connection', (socket: Socket) => {
+    console.log('Клиент подключился');
+
+    socket.on('setClientId', clientId => {
+        console.log('setClientId', clientId)
+        if (clientId !== null) {
+            clientSockets[clientId.toString()] = socket.id;
+        }
+    });
+
+    socket.on('newOrder', async data => {
+        let admin = await prisma.user_order.findUnique({
+            where: {id: data.orderId},
+            select: {
+                courier: {
+                    select: {
+                        restaurant_rel: {
+                            select: {
+                                restaurant_admin: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const adminId = admin?.courier.restaurant_rel.restaurant_admin;
+        if (adminId !== undefined) {
+            const clientSocketId = clientSockets[adminId.toString()];
+            socketIO.to(clientSocketId).emit('newOrderAdmin');
+        }
+    });
+
+    socket.on('setOrderStatus', (data) => {
+        const clientSocketId = clientSockets[data.clientId];
+        if (clientSocketId) {
+            socketIO.to(clientSocketId).emit('orderStatusChanged', {status: data.status, orderId: data.orderId});
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Клиент отключился');
+        Object.keys(clientSockets).forEach(key => {
+            if (clientSockets[key] === socket.id) {
+                delete clientSockets[key];
+            }
+        });
+    });
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -48,4 +106,4 @@ app.use('/order', orderRouter);
 app.use('/user', userRouter);
 app.use('/ingredient', ingredientRouter);
 
-app.listen(3000, () => console.log('Server is running at http://localhost:3000'));
+http.listen(3000, () => console.log('Server is running at http://localhost:3000'));

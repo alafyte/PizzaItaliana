@@ -6,11 +6,12 @@ export default function (shouldBeLoggedIn : boolean) {
         }
 
         const token = req.headers.authorization ?  !!req.headers.authorization.split(" ")[1] : false;
+        const session = req.cookies["_es_usr_session"];
 
-        if (shouldBeLoggedIn === token)
-            next();
-        else if (shouldBeLoggedIn)
+        if (shouldBeLoggedIn && session === undefined)
             return res.status(403).json({error: "Для продолжения войдите в систему"})
+        else if (shouldBeLoggedIn === token)
+            next();
         else
             return res.status(403).json({error: "Доступ запрещен"})
     }

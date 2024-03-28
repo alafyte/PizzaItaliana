@@ -34,6 +34,7 @@ model Cart_item {
   cart_id        Int
   item_info      Int
   item_quantity  Int
+  notes          String?
   menu_item_info Menu_item_info @relation(fields: [item_info], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cart_menu_item_info")
 
   @@index([cart_id], map: "idx_cart_item_cart_id")
@@ -47,8 +48,8 @@ model Courier {
   personal_data     Int
   salary            Decimal       @db.Decimal(8, 2)
   restaurant        Int
-  active            Boolean       @default(true)
-  busy              Boolean       @default(true)
+  active            Boolean       @default(false)
+  busy              Boolean       @default(false)
   personal_data_rel Personal_data @relation("courier_personal_dataTopersonal_data", fields: [personal_data], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier_personal_data")
   restaurant_rel    Restaurant    @relation("courier_restaurantTorestaurant", fields: [restaurant], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier_restaurant")
   user_orders       User_order[]
@@ -65,7 +66,6 @@ model Menu {
   id               Int               @id @default(autoincrement())
   item_name        String
   small_size_price Decimal           @db.Decimal(5, 2)
-  description      String?
   item_image       String?
   ingredients      Ingredient_menu[] @relation("ingredient_menu_menuTomenu")
   menu_item_infos  Menu_item_info[]
@@ -93,6 +93,7 @@ model Order_item {
   item_info        Int
   item_quantity    Int
   item_total_price Decimal        @db.Decimal(5, 2)
+  notes            String?
   menu_item_info   Menu_item_info @relation(fields: [item_info], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_item_menu_item_info")
   user_order       User_order     @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_item_user_order")
 

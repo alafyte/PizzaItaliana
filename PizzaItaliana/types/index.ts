@@ -29,7 +29,8 @@ export type Restaurant = {
 export type CartItemType = {
     cart_id: number,
     menu_item_id: number,
-    menu_item_size: number
+    menu_item_size: number,
+    notes: string | null
 }
 
 export type Product = {

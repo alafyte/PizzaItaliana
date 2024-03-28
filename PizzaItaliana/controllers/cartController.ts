@@ -14,6 +14,7 @@ const getUserCartInfo = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 item_quantity: true,
+                notes: true,
                 menu_item_info: {
                     select: {
                         menu: true,
@@ -54,6 +55,7 @@ const addToCart = async (req: Request, res: Response) => {
             cart_id: cart.id,
             menu_item_id: req.body.item_id,
             menu_item_size: req.body.item_size,
+            notes: req.body.removed
         }
 
         addToCartQuery(new_data)
@@ -131,7 +133,8 @@ const addToCartQuery = async (new_data: CartItemType) => {
         public.add_to_cart(
         ${new_data.cart_id}, 
         ${new_data.menu_item_id},
-        ${new_data.menu_item_size});`;
+        ${new_data.menu_item_size},
+        '${new_data.notes}'::text);`;
 
     return prisma.$executeRawUnsafe(`${query}`);
 }

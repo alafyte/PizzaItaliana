@@ -8,10 +8,8 @@ export const menuDataValidator = [
     body("small_size_price")
         .notEmpty().withMessage('Цена не должна быть пустой')
         .isFloat({min: 0.01, max: 1000}).withMessage('Цена должна быть указана числом в пределах от 0.01 до 1000'),
-    body("description")
-        .trim()
+    body("ingredients")
         .notEmpty().withMessage('Описание блюда не должно быть пустым')
-        .isLength({max: 499}).withMessage('Описание товара не должно превышать 500 символов'),
 ]
 
 export const registrationDataValidator = [

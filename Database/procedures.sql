@@ -168,7 +168,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION ADD_TO_CART(
     P_CART_ID INT,
     P_MENU_ITEM_ID INT,
-    P_MENU_ITEM_SIZE INT
+    P_MENU_ITEM_SIZE INT,
+    P_NOTES TEXT
 ) RETURNS VOID AS
 $$
 DECLARE
@@ -195,7 +196,6 @@ BEGIN
             V_MENU_ITEM_INFO_ID := NULL;
     END;
 
-    RAISE NOTICE '%', V_MENU_ITEM_INFO_ID;
 
     IF V_MENU_ITEM_INFO_ID IS NOT NULL THEN
         UPDATE CART_ITEM
@@ -205,8 +205,8 @@ BEGIN
     ELSE
         V_MENU_ITEM_INFO_ID := INSERT_MENU_ITEM_INFO(P_MENU_ITEM_ID, P_MENU_ITEM_SIZE);
 
-        INSERT INTO CART_ITEM (CART_ID, ITEM_INFO, ITEM_QUANTITY)
-        VALUES (P_CART_ID, V_MENU_ITEM_INFO_ID, 1);
+        INSERT INTO CART_ITEM (CART_ID, ITEM_INFO, ITEM_QUANTITY, NOTES)
+        VALUES (P_CART_ID, V_MENU_ITEM_INFO_ID, 1, P_NOTES);
     END IF;
 
 EXCEPTION
@@ -373,8 +373,10 @@ CREATE TYPE CART_RECORD AS
     ITEM_INFO        INT,
     ITEM_QUANTITY    INT,
     SMALL_SIZE_PRICE numeric(5, 2),
-    MARKUP           NUMERIC(4, 2)
+    MARKUP           NUMERIC(4, 2),
+    NOTES TEXT
 );
+
 
 CREATE OR REPLACE FUNCTION MOVE_CART_ITEMS_TO_ORDER(
     P_USER_LATITUDE NUMERIC,
@@ -382,14 +384,20 @@ CREATE OR REPLACE FUNCTION MOVE_CART_ITEMS_TO_ORDER(
     P_USER_ID INT,
     P_ADDRESS TEXT,
     P_CART_ID INT
-) RETURNS VOID AS
+) RETURNS INT AS
 $$
 DECLARE
-
     CART_REC     CART_RECORD;
     V_ORDER_ID   INT;
+    V_CART_ITEMS_COUNT INT;
     V_TOTAL_COST NUMERIC(5, 2);
 BEGIN
+    SELECT COUNT(*) INTO V_CART_ITEMS_COUNT FROM CART_ITEM WHERE CART_ID = P_CART_ID;
+
+    IF V_CART_ITEMS_COUNT = 0 THEN
+        RAISE EXCEPTION 'Нет товаров в корзине для оформления заказа';
+    END IF;
+
     V_ORDER_ID := CREATE_USER_ORDER(P_USER_LATITUDE, P_USER_LONGITUDE, P_USER_ID, P_ADDRESS);
 
     IF V_ORDER_ID IS NULL THEN
@@ -397,7 +405,7 @@ BEGIN
     END IF;
 
 
-    FOR CART_REC IN (SELECT item_info, item_quantity, small_size_price, markup
+    FOR CART_REC IN (SELECT item_info, item_quantity, small_size_price, markup, notes
                      FROM CART_ITEM
                               INNER JOIN menu_item_info mii on mii.id = cart_item.item_info
                               INNER JOIN size_category sc on sc.id = mii.menu_item_size
@@ -405,21 +413,19 @@ BEGIN
                      WHERE CART_ID = P_CART_ID)
         LOOP
             V_TOTAL_COST := CART_REC.item_quantity * (CART_REC.small_size_price * CART_REC.markup);
-            RAISE NOTICE '%', CART_REC.ITEM_INFO;
-            RAISE NOTICE '%', V_ORDER_ID;
-            RAISE NOTICE '%', CART_REC.ITEM_QUANTITY;
-            RAISE NOTICE '%', V_TOTAL_COST;
-            INSERT INTO ORDER_ITEM (ITEM_INFO, ORDER_ID, ITEM_QUANTITY, ITEM_TOTAL_PRICE)
-            VALUES (CART_REC.ITEM_INFO, V_ORDER_ID, CART_REC.ITEM_QUANTITY, V_TOTAL_COST);
+
+            INSERT INTO ORDER_ITEM (ITEM_INFO, ORDER_ID, ITEM_QUANTITY, ITEM_TOTAL_PRICE, NOTES)
+            VALUES (CART_REC.ITEM_INFO, V_ORDER_ID, CART_REC.ITEM_QUANTITY, V_TOTAL_COST, CART_REC.NOTES);
         END LOOP;
 
     DELETE FROM CART_ITEM WHERE CART_ID = P_CART_ID;
-
+    RETURN V_ORDER_ID;
 EXCEPTION
     WHEN OTHERS THEN
         RAISE EXCEPTION 'Произошла ошибка: %', SQLERRM;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION GET_MENU_ITEMS_PAGE(
     P_PAGE_NUMBER INT,
@@ -430,7 +436,6 @@ CREATE OR REPLACE FUNCTION GET_MENU_ITEMS_PAGE(
                 ID               INT,
                 ITEM_NAME        TEXT,
                 SMALL_SIZE_PRICE NUMERIC(5, 2),
-                DESCRIPTION      TEXT,
                 ITEM_IMAGE       TEXT
             )
 AS
@@ -442,7 +447,7 @@ BEGIN
     L_START_INDEX := (P_PAGE_NUMBER - 1) * P_PAGE_SIZE + 1;
     L_END_INDEX := P_PAGE_NUMBER * P_PAGE_SIZE;
 
-    RETURN QUERY SELECT MenuRN.id, MenuRN.item_name, MenuRN.small_size_price, MenuRN.description, MenuRN.item_image
+    RETURN QUERY SELECT MenuRN.id, MenuRN.item_name, MenuRN.small_size_price, MenuRN.item_image
                  FROM (SELECT M.*,
                               ROW_NUMBER() OVER (ORDER BY M.ID) AS ROW_NUM
                        FROM MENU M) as MenuRN
@@ -455,6 +460,72 @@ EXCEPTION
 END
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION GET_MENU_ITEMS_PAGE_BY_NAME(
+    P_PAGE_NUMBER INT,
+    P_PAGE_SIZE INT,
+    P_PRODUCT_NAME TEXT
+)
+    RETURNS TABLE
+            (
+                ID               INT,
+                ITEM_NAME        TEXT,
+                SMALL_SIZE_PRICE NUMERIC(5, 2),
+                ITEM_IMAGE       TEXT
+            )
+AS
+$$
+DECLARE
+    L_START_INDEX INT;
+    L_END_INDEX   INT;
+BEGIN
+    L_START_INDEX := (P_PAGE_NUMBER - 1) * P_PAGE_SIZE + 1;
+    L_END_INDEX := P_PAGE_NUMBER * P_PAGE_SIZE;
+
+    RETURN QUERY SELECT MenuRN.id, MenuRN.item_name, MenuRN.small_size_price, MenuRN.item_image
+                 FROM (SELECT M.*,
+                              ROW_NUMBER() OVER (ORDER BY M.ID) AS ROW_NUM
+                       FROM MENU M WHERE LOWER(M.item_name) LIKE '%' || LOWER(P_PRODUCT_NAME) || '%') as MenuRN
+                 WHERE ROW_NUM >= L_START_INDEX
+                   AND ROW_NUM <= L_END_INDEX;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Произошла ошибка: %', SQLERRM;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION GET_INGREDIENTS_PAGE(
+    P_PAGE_NUMBER INT,
+    P_PAGE_SIZE INT
+)
+    RETURNS TABLE
+            (
+                ID        INT,
+                NAME      TEXT,
+                REMOVABLE BOOLEAN
+            )
+AS
+$$
+DECLARE
+    L_START_INDEX INT;
+    L_END_INDEX   INT;
+BEGIN
+    L_START_INDEX := (P_PAGE_NUMBER - 1) * P_PAGE_SIZE + 1;
+    L_END_INDEX := P_PAGE_NUMBER * P_PAGE_SIZE;
+
+    RETURN QUERY SELECT IngredientRN.id, IngredientRN.name, IngredientRN.removable
+                 FROM (SELECT I.*,
+                              ROW_NUMBER() OVER (ORDER BY I.ID) AS ROW_NUM
+                       FROM INGREDIENT I) as IngredientRN
+                 WHERE ROW_NUM >= L_START_INDEX
+                   AND ROW_NUM <= L_END_INDEX;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Произошла ошибка: %', SQLERRM;
+END
+$$ LANGUAGE plpgsql;
 
 --     PROCEDURE DELETE_ORPHAN_USER_ORDERS IS
 --     BEGIN

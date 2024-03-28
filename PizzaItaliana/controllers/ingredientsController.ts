@@ -1,13 +1,32 @@
 import {Request, Response} from 'express';
 import {prisma} from "../config";
 import {validationResult} from "express-validator";
+import {getAllObjectsPage} from "../utils";
 
-const getIngredients = async (req: Request, res: Response) => {
+const getAll = async (req: Request, res: Response) => {
     try {
-        let ingredients = await prisma.ingredient.findMany({
-            orderBy: [{id: 'asc'}]
-        });
+        let ingredients = await prisma.ingredient.findMany();
         return res.status(200).json(ingredients);
+    } catch (err) {
+        return res.status(500).json({error: [{msg: "Ошибка при отображении ингредиентов"}]})
+    }
+}
+
+const getIngredientsByPage = async (req: Request, res: Response) => {
+    try {
+        let pageQuery: string = req.query.page ? req.query.page.toString() : "1";
+        let page: number;
+        if (!parseInt(pageQuery, 10)) {
+            page = 1;
+        } else {
+            page = parseInt(pageQuery, 10);
+        }
+
+        let ingredients = await getIngredientsByPageQuery(page, 8);
+
+        let ingredientsLength = await prisma.ingredient.count();
+        const paginator = await getAllObjectsPage(ingredients, ingredientsLength, page, 8);
+        return res.status(200).json(paginator);
     } catch (err) {
         return res.status(500).json({error: [{msg: "Ошибка при отображении ингредиентов"}]})
     }
@@ -95,9 +114,19 @@ const deleteIngredient = async (req: Request, res: Response) => {
     }
 }
 
+const getIngredientsByPageQuery = (page: number, pageSize: number) => {
+    let query = `SELECT * FROM
+        public.GET_INGREDIENTS_PAGE(
+        P_PAGE_NUMBER => ${page},
+        P_PAGE_SIZE => ${pageSize});`;
+
+    return prisma.$queryRawUnsafe(`${query}`);
+}
+
 export default {
-    getIngredients: getIngredients,
+    getIngredients: getIngredientsByPage,
     getOne: getOne,
+    getAll: getAll,
     addIngredient: addIngredient,
     updateIngredient: updateIngredient,
     deleteIngredient: deleteIngredient,

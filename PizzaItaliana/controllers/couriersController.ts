@@ -38,7 +38,7 @@ const getAll = async (req: Request, res: Response) => {
         });
 
         for (let courier of couriers) {
-            if (courier.busy) {
+            if (courier.busy && courier.active) {
                 //@ts-ignore
                 courier.current_order_id = findClosestDateObject(courier.user_orders);
             }

@@ -191,6 +191,7 @@ const getRestaurantByAdmin = async (req: Request, res: Response) => {
                 status: true,
                 app_user: {
                     select: {
+                        id: true,
                         personal_data_rel: {
                             select: {
                                 full_name: true,
@@ -202,6 +203,7 @@ const getRestaurantByAdmin = async (req: Request, res: Response) => {
                 order_items: {
                     select: {
                         item_quantity: true,
+                        notes: true,
                         menu_item_info: {
                             select: {
                                 menu: true,
@@ -276,6 +278,7 @@ const getRestaurantArchive = async (req: Request, res: Response) => {
                 order_items: {
                     select: {
                         item_quantity: true,
+                        notes: true,
                         menu_item_info: {
                             select: {
                                 menu: true,

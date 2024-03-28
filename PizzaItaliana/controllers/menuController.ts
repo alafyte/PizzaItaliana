@@ -5,6 +5,7 @@ import {Request, Response} from 'express';
 import {prisma} from "../config";
 import fs from "fs";
 import {getAllObjectsPage} from "../utils";
+import {Menu, PrismaPromise} from "@prisma/client";
 
 
 const getAll = async (req: Request, res: Response) => {
@@ -25,6 +26,32 @@ const getAll = async (req: Request, res: Response) => {
         return res.status(500).json({error: [{msg: "Ошибка при отображении товаров"}]})
     }
 }
+
+const searchProduct = async (req: Request, res: Response) => {
+    try {
+        let pageQuery: string = req.query.page ? req.query.page.toString() : "1";
+
+        let page: number;
+        if (!parseInt(pageQuery, 10)) {
+            page = 1;
+        } else {
+            page = parseInt(pageQuery, 10);
+        }
+
+        let searchQuery: string = req.query.name ? req.query.name.toString() : "";
+
+        if (searchQuery !== "") {
+            let products = await getProductsByPageByNameQuery(page, 8, searchQuery);
+            const paginator = await getAllObjectsPage(products, products.length, page, 8);
+            res.status(200).json(paginator);
+        } else {
+            res.redirect("/menu");
+        }
+    } catch (err) {
+        return res.status(500).json({error: [{msg: "Ошибка при отображении товаров"}]})
+    }
+}
+
 const getProductForUpdate = async (req: Request, res: Response) => {
     try {
         if (!parseInt(req.params['productId'], 10)) {
@@ -35,8 +62,21 @@ const getProductForUpdate = async (req: Request, res: Response) => {
         let product = await prisma.menu.findUnique({
             where: {id: id}
         });
+        let ingredients = await prisma.ingredient_menu.findMany({
+            where: {menu: product?.id},
+            select: {
+                ingredient_ingredient: {
+                    select: {
+                        id: true
+                    }
+                }
+            }
+        });
 
-        res.status(200).json(product)
+        res.status(200).json({
+            product: product,
+            ingredients: ingredients.map((ingr) => ingr.ingredient_ingredient.id),
+        });
     } catch (err) {
         return res.status(422).json({error: [{msg: "Ошибка при получении товара"}]})
     }
@@ -50,8 +90,11 @@ const getProductDetails = async (req: Request, res: Response) => {
         let id = parseInt(req.params['productId'], 10);
         let product = await prisma.menu.findUnique({
             where: {id: id},
-            include: {
-                ingredients: true
+        });
+        let ingredients = await prisma.ingredient_menu.findMany({
+            where: {menu: product?.id},
+            select: {
+                ingredient_ingredient: true
             }
         });
         const sizes = await prisma.size_category.findMany({
@@ -71,6 +114,7 @@ const getProductDetails = async (req: Request, res: Response) => {
             product: product,
             sizes: sizes,
             prices: prices,
+            ingredients: ingredients.map((ingr) => ingr.ingredient_ingredient),
             current_size_option: 1
         })
     } catch (err) {
@@ -92,12 +136,22 @@ const createNewProduct = async (req: Request, res: Response) => {
         if (!errors.isEmpty()) {
             return res.status(422).json({error: errors.array()});
         }
+
+        const ingredients = JSON.parse(req.body.ingredients);
+        let createIngredients = ingredients.map((ingr: number) => ({
+            ingredient_ingredient: {
+                connect: {id: ingr}
+            }
+        }));
+
         await prisma.menu.create({
             data: {
                 item_name: req.body.item_name,
                 small_size_price: req.body.small_size_price,
-                description: req.body.description,
-                item_image: path.join(upload.upload_path, req.file.filename)
+                item_image: path.join(upload.upload_path, req.file.filename),
+                ingredients: {
+                    create: createIngredients
+                }
             }
         });
 
@@ -148,13 +202,24 @@ const changeProduct = async (req: Request, res: Response) => {
             image_data = product.item_image!;
         }
 
+        const ingredients = JSON.parse(req.body.ingredients);
+        let update = ingredients.map((ingr: number) => ({
+            ingredient_ingredient: {
+                connect: {id: ingr}
+            }
+        }));
+
+
         await prisma.menu.update({
             where: {id: id},
             data: {
                 item_name: req.body.item_name,
                 small_size_price: req.body.price,
-                description: req.body.description,
-                item_image: image_data
+                item_image: image_data,
+                ingredients: {
+                    deleteMany: {},
+                    create: update
+                }
             }
         });
         return res.status(200).json({message: "success"});
@@ -185,6 +250,14 @@ const deleteProduct = async (req: Request, res: Response) => {
             if (err) console.log('failed to delete product image')
         });
 
+        await prisma.menu.update({
+            where: {id: id},
+            data: {
+                ingredients: {
+                    deleteMany: {}
+                }
+            }
+        });
         await prisma.menu.delete({
             where: {id: id}
         });
@@ -204,8 +277,19 @@ const getProductsByPageQuery = (page: number, pageSize: number) => {
     return prisma.$queryRawUnsafe(`${query}`);
 }
 
+const getProductsByPageByNameQuery = (page: number, pageSize: number, pName: string): PrismaPromise<Menu[]> => {
+    let query = `SELECT * FROM
+        public.GET_MENU_ITEMS_PAGE_BY_NAME(
+        P_PAGE_NUMBER => ${page},
+        P_PAGE_SIZE => ${pageSize},
+        P_PRODUCT_NAME => '${pName}'::text);`;
+
+    return prisma.$queryRawUnsafe(`${query}`);
+}
+
 export default {
     getAll: getAll,
+    searchProduct: searchProduct,
     getProductForUpdate: getProductForUpdate,
     getProductDetails: getProductDetails,
     createNewProduct: createNewProduct,

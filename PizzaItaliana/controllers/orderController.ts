@@ -2,6 +2,7 @@ import {Request, Response} from 'express';
 import {prisma} from "../config";
 import {CreateOrderType, OrderStatus} from "../types";
 import {getAllObjectsPage} from "../utils";
+import {PrismaPromise} from "@prisma/client";
 
 
 const getUserOrders = async (req: Request, res: Response) => {
@@ -26,6 +27,7 @@ const getUserOrders = async (req: Request, res: Response) => {
                 order_items: {
                     select: {
                         id: true,
+                        notes: true,
                         menu_item_info: {
                             select: {
                                 menu: true,
@@ -80,26 +82,23 @@ const makeOrder = async (req: Request, res: Response) => {
             cart_id: cart.id
         }
 
-        createOrderQuery(new_data)
-            .then(() => res.status(200).json({message: "success"}))
-            .catch((err: any) => {
-                const messages = [
-                    "Пользователь вне области доставки",
-                    "Время заказа не входит в промежуток работы службы доставки",
-                    "Нет свободных курьеров"
-                ]
-                let error_message = "Ошибка при оформлении заказа";
-                if (err.message.includes(messages[0])) {
-                    error_message = "Указанный адрес не входит в область доставки"
-                } else if (err.message.includes(messages[1])) {
-                    error_message = messages[1]
-                } else if (err.message.includes(messages[2])) {
-                    error_message = "На данный момент сервис доставки перегружен. Повторите попытку позже"
-                }
-                return res.status(422).json({error: error_message})
-            });
-    } catch (err) {
-        return res.status(422).json({error: [{msg: "Ошибка при совершении заказа"}]})
+        const orderId: {move_cart_items_to_order: number}[] = await createOrderQuery(new_data)
+        return res.status(200).json({orderId: orderId[0].move_cart_items_to_order})
+    } catch (err: any) {
+        const messages = [
+            "Пользователь вне области доставки",
+            "Время заказа не входит в промежуток работы службы доставки",
+            "Нет свободных курьеров"
+        ]
+        let error_message = "Ошибка при оформлении заказа";
+        if (err.message.includes(messages[0])) {
+            error_message = "Указанный адрес не входит в область доставки"
+        } else if (err.message.includes(messages[1])) {
+            error_message = messages[1]
+        } else if (err.message.includes(messages[2])) {
+            error_message = "На данный момент сервис доставки перегружен. Повторите попытку позже"
+        }
+        return res.status(422).json({error: error_message})
     }
 }
 
@@ -133,8 +132,9 @@ const changeOrderStatus = async (req: Request, res: Response) => {
 }
 
 
-
-const createOrderQuery = async (new_data: CreateOrderType) => {
+const createOrderQuery = async (new_data: CreateOrderType): Promise<PrismaPromise<{
+    move_cart_items_to_order: number
+}[]>> => {
     let query = `SELECT * FROM
         public.MOVE_CART_ITEMS_TO_ORDER(
         ${new_data.user_latitude}, 
@@ -143,7 +143,7 @@ const createOrderQuery = async (new_data: CreateOrderType) => {
         '${new_data.address}'::text,
         ${new_data.cart_id});`;
 
-    return prisma.$executeRawUnsafe(query);
+    return prisma.$queryRawUnsafe(query);
 }
 
 export default {

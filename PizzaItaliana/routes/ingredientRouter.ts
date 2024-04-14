@@ -4,7 +4,7 @@ import roleMiddleware from "../middleware/roleMiddleware";
 import {ingredientDataValidator} from "../validators";
 const router = express.Router();
 
-
+router.get('/all', roleMiddleware(['head_admin']), controller.getAll);
 router.get('/:ingredientId', controller.getOne);
 router.get('/', roleMiddleware(['head_admin']), controller.getIngredients);
 router.post('/', roleMiddleware(['head_admin']), ingredientDataValidator, controller.addIngredient);

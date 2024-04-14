@@ -8,6 +8,7 @@ const router = express.Router();
 
 
 router.get('/', controller.getAll);
+router.get('/search', controller.searchProduct);
 router.get('/:productId', roleMiddleware(['head_admin']), controller.getProductForUpdate);
 router.get('/details/:productId', controller.getProductDetails);
 

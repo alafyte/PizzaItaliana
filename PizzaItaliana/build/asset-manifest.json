@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/static/css/main.65d20dd2.css",
+    "main.js": "/static/js/main.46bb2404.js",
+    "static/media/user1.png": "/static/media/user1.0d14c6999b4a5c8e86a7.png",
+    "static/media/pizza-svgrepo-com.svg": "/static/media/pizza-svgrepo-com.13fb223b4054c24d94c3ba6910d49e08.svg",
+    "index.html": "/index.html",
+    "main.65d20dd2.css.map": "/static/css/main.65d20dd2.css.map",
+    "main.46bb2404.js.map": "/static/js/main.46bb2404.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.65d20dd2.css",
+    "static/js/main.46bb2404.js"
+  ]
+}

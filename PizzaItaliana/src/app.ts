@@ -15,19 +15,28 @@ import ingredientRouter from "../routes/ingredientRouter";
 import cors from "cors";
 import {Socket} from "socket.io";
 import {prisma} from '../config';
+import fs from "fs";
+import dotenv from 'dotenv';
+dotenv.config()
 
 const app = express();
 
-const http = require("http").Server(app);
-const socketIO = require('socket.io')(http, {
+const options = {
+    key: fs.readFileSync(path.join(process.cwd(), 'certificate', 'Pizza.key')).toString(),
+    cert: fs.readFileSync(path.join(process.cwd(), 'certificate', 'Pizza.crt')).toString(),
+    passphrase: process.env.PASSPHRASE
+}
+
+const https = require("https").createServer(options, app);
+const socketIO = require('socket.io')(https, {
+    // Development
     cors: {
-        origin: "http://localhost:3006"
+        origin: "https://pizza-italiana.by:3000"
     }
 });
 
 const clientSockets: {[key: string]: string} = {};
 socketIO.on('connection', (socket: Socket) => {
-    console.log('Клиент подключился');
 
     socket.on('setClientId', clientId => {
         console.log('setClientId', clientId)
@@ -66,7 +75,6 @@ socketIO.on('connection', (socket: Socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Клиент отключился');
         Object.keys(clientSockets).forEach(key => {
             if (clientSockets[key] === socket.id) {
                 delete clientSockets[key];
@@ -78,21 +86,23 @@ socketIO.on('connection', (socket: Socket) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(process.cwd(), 'public')));
+
+app.use("/", express.static(path.join(process.cwd(), 'public')));
+app.use("/", express.static(path.join(process.cwd(), 'build')));
 
 app.use(cookie_session({
     name: '_es_usr_session',
     secret: 'kkd983-dw622-345kkcvm',
-    // sameSite: 'none',
-    // secure: true,
     httpOnly: true,
 }));
 
+
 app.enable('trust proxy');
 
+// Development
 app.use(cors({
     credentials: true,
-    origin: 'http://localhost:3006',
+    origin: 'https://pizza-italiana.by:3000',
 }));
 
 app.use('/auth', authRouter);
@@ -106,4 +116,7 @@ app.use('/order', orderRouter);
 app.use('/user', userRouter);
 app.use('/ingredient', ingredientRouter);
 
-http.listen(3000, () => console.log('Server is running at http://localhost:3000'));
+// app.get('*', (req, res) => {
+//     res.sendFile(path.join(process.cwd(), 'build', 'index.html'));
+// });
+https.listen(3443, () => console.log('Server is running at https://pizza-italiana.by:3443'));

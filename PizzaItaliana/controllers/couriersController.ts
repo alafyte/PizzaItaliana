@@ -46,7 +46,7 @@ const getAll = async (req: Request, res: Response) => {
 
         res.status(200).json(couriers);
     } catch (err) {
-        return res.status(500).json({error: [{msg: "Ошибка при отображении курьеров"}]})
+        return res.status(422).json({error: [{msg: "Ошибка при отображении курьеров"}]})
     }
 }
 
@@ -81,7 +81,7 @@ const getOne = async (req: Request, res: Response) => {
 
         res.status(200).json(courier);
     } catch (err) {
-        return res.status(500).json({error: [{msg: "Ошибка при получении курьера"}]})
+        return res.status(422).json({error: [{msg: "Ошибка при получении курьера"}]})
     }
 }
 

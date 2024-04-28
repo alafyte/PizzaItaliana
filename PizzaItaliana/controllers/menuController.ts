@@ -138,6 +138,9 @@ const createNewProduct = async (req: Request, res: Response) => {
         }
 
         const ingredients = JSON.parse(req.body.ingredients);
+        if (ingredients.length == 0)
+            return res.status(422).json({error: [{msg: "Добавьте ингредиенты товара"}]});
+
         let createIngredients = ingredients.map((ingr: number) => ({
             ingredient_ingredient: {
                 connect: {id: ingr}
@@ -203,6 +206,9 @@ const changeProduct = async (req: Request, res: Response) => {
         }
 
         const ingredients = JSON.parse(req.body.ingredients);
+        if (ingredients.length == 0)
+            return res.status(422).json({error: [{msg: "Добавьте ингредиенты товара"}]});
+
         let update = ingredients.map((ingr: number) => ({
             ingredient_ingredient: {
                 connect: {id: ingr}
@@ -258,14 +264,21 @@ const deleteProduct = async (req: Request, res: Response) => {
                 }
             }
         });
+
         await prisma.menu.delete({
             where: {id: id}
         });
+
+        await deleteOrphanUserOrders();
 
         return res.status(200).json({message: "success"});
     } catch (err) {
         return res.status(422).json({error: [{msg: "Ошибка при удалении товара"}]});
     }
+}
+
+const deleteOrphanUserOrders = async () => {
+    await prisma.$executeRaw`CALL DELETE_ORPHAN_USER_ORDERS();`;
 }
 
 const getProductsByPageQuery = (page: number, pageSize: number) => {

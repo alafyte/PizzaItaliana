@@ -374,7 +374,17 @@ CREATE TYPE CART_RECORD AS
     ITEM_QUANTITY    INT,
     SMALL_SIZE_PRICE numeric(5, 2),
     MARKUP           NUMERIC(4, 2),
-    NOTES TEXT
+    NOTES            TEXT
+);
+
+CREATE TYPE USER_ORDER_RECORD AS
+(
+    ID            INT,
+    DATE_OF_ORDER timestamp,
+    USER_ID       INT,
+    ADDRESS       TEXT,
+    STATUS        TEXT,
+    COURIER_ID    INT
 );
 
 
@@ -387,10 +397,10 @@ CREATE OR REPLACE FUNCTION MOVE_CART_ITEMS_TO_ORDER(
 ) RETURNS INT AS
 $$
 DECLARE
-    CART_REC     CART_RECORD;
-    V_ORDER_ID   INT;
+    CART_REC           CART_RECORD;
+    V_ORDER_ID         INT;
     V_CART_ITEMS_COUNT INT;
-    V_TOTAL_COST NUMERIC(5, 2);
+    V_TOTAL_COST       NUMERIC(5, 2);
 BEGIN
     SELECT COUNT(*) INTO V_CART_ITEMS_COUNT FROM CART_ITEM WHERE CART_ID = P_CART_ID;
 
@@ -484,7 +494,8 @@ BEGIN
     RETURN QUERY SELECT MenuRN.id, MenuRN.item_name, MenuRN.small_size_price, MenuRN.item_image
                  FROM (SELECT M.*,
                               ROW_NUMBER() OVER (ORDER BY M.ID) AS ROW_NUM
-                       FROM MENU M WHERE LOWER(M.item_name) LIKE '%' || LOWER(P_PRODUCT_NAME) || '%') as MenuRN
+                       FROM MENU M
+                       WHERE LOWER(M.item_name) LIKE '%' || LOWER(P_PRODUCT_NAME) || '%') as MenuRN
                  WHERE ROW_NUM >= L_START_INDEX
                    AND ROW_NUM <= L_END_INDEX;
 
@@ -527,17 +538,20 @@ EXCEPTION
 END
 $$ LANGUAGE plpgsql;
 
---     PROCEDURE DELETE_ORPHAN_USER_ORDERS IS
---     BEGIN
---         FOR user_order_rec IN (SELECT uo.ID
---                                FROM USER_ORDER uo
---                                         LEFT JOIN ORDER_ITEM oi ON uo.ID = oi.ORDER_ID
---                                WHERE oi.ID IS NULL)
---             LOOP
---                 DELETE FROM USER_ORDER WHERE ID = user_order_rec.ID;
---             END LOOP;
---         COMMIT;
---     END DELETE_ORPHAN_USER_ORDERS;
 
-
+CREATE OR REPLACE PROCEDURE DELETE_ORPHAN_USER_ORDERS() AS
+$$
+DECLARE
+    user_order_rec USER_ORDER_RECORD;
+BEGIN
+    FOR user_order_rec IN (SELECT uo.ID
+                           FROM USER_ORDER uo
+                                    LEFT JOIN ORDER_ITEM oi ON uo.ID = oi.ORDER_ID
+                           WHERE oi.ID IS NULL)
+        LOOP
+            DELETE FROM USER_ORDER WHERE ID = user_order_rec.ID;
+        END LOOP;
+    COMMIT;
+END
+$$ LANGUAGE plpgsql;
 

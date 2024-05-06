@@ -55,6 +55,9 @@ const UserOrders = ({setTab}: SetTabPropsType) => {
                                             <div
                                                 className="block mx-auto mb-3  max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow  dark:bg-gray-800 dark:border-gray-700">
                                                 <p className="font-normal text-xl dark:text-gray-400">
+                                                    Заказ №{order.id}
+                                                </p>
+                                                <p className="font-normal text-xl dark:text-gray-400">
                                                     Дата заказа: {isoStringToDateTime(order.date_of_order)}
                                                 </p>
                                                 <p className="font-normal text-lg dark:text-gray-400">

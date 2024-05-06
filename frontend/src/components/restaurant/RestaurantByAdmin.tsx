@@ -200,7 +200,9 @@ const RestaurantByAdmin = () => {
                                     }
                                 </>
                                 :
-                                <>Ресторан не найден</>
+                                <h2 className="lg:text-4xl text-3xl font-extrabold dark:text-white text-center mb-8">
+                                    Ресторан не найден
+                                </h2>
                         }
                     </div>
                     :

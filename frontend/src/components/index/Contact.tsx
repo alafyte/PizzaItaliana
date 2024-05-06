@@ -66,38 +66,42 @@ const Contact = ({setTab}: SetTabPropsType) => {
                     <div>
                         {
                             restaurants ?
-                                <div
-                                    className="md:max-w-xl lg:max-w-7xl md:mx-auto w-full px-4 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {
-                                        restaurants.map(rest =>
-                                            <div
-                                                className="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
-                                                <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                                                    {rest.address}
-                                                </h5>
-                                                <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
-                                                    Ежедневно
-                                                </p>
-                                                <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
-                                                    Время
-                                                    работы: {isoStringToTime(rest.open_time)} - {isoStringToTime(rest.close_time)}
-                                                </p>
-                                                <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
-                                                    Доставка: {isoStringToTime(rest.delivery_start_time)} - {isoStringToTime(rest.delivery_end_time)}
-                                                </p>
-                                            </div>)
-                                    }
-                                </div> :
-                                <h1>Рестораны не найдены</h1>
+                                <>
+                                    <div
+                                        className="md:max-w-xl lg:max-w-7xl md:mx-auto w-full px-4 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {
+                                            restaurants.map(rest =>
+                                                <div
+                                                    className="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                                                    <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                                        {rest.address}
+                                                    </h5>
+                                                    <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
+                                                        Ежедневно
+                                                    </p>
+                                                    <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
+                                                        Время
+                                                        работы: {isoStringToTime(rest.open_time)} - {isoStringToTime(rest.close_time)}
+                                                    </p>
+                                                    <p className="font-normal text-gray-700 dark:text-gray-400 p-0">
+                                                        Доставка: {isoStringToTime(rest.delivery_start_time)} - {isoStringToTime(rest.delivery_end_time)}
+                                                    </p>
+                                                </div>)
+                                        }
+                                    </div>
+                                    <Button className="bg-blue-700 w-fit mx-auto mb-2 mt-8">
+                                        <a href="/map"> Посмотреть карту доставки</a>
+                                    </Button>
+
+                                    <Button onClick={getNearestRestaurant}
+                                            className="bg-blue-700 w-fit mx-auto mb-2 mt-8">
+                                        Найти ближайший ресторан
+                                    </Button>
+                                </> :
+                                <h2 className="lg:text-4xl mt-4 text-3xl font-extrabold dark:text-white text-center mb-8">
+                                    Рестораны не найдены
+                                </h2>
                         }
-
-                        <Button className="bg-blue-700 w-fit mx-auto mb-2 mt-8">
-                            <a href="/map"> Посмотреть карту доставки</a>
-                        </Button>
-
-                        <Button onClick={getNearestRestaurant} className="bg-blue-700 w-fit mx-auto mb-2 mt-8">
-                            Найти ближайший ресторан
-                        </Button>
 
                         <Alert color="info"
                                className={address ? 'visible w-full md:max-w-md mx-auto' : 'hidden w-full md:max-w-md mx-auto '}>

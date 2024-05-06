@@ -41,13 +41,13 @@ const DisplayMenu = ({menuUrlAction}: DisplayMenuPropsType) => {
 
     return (
         <div>
+            <Search search={searchMenu}/>
             {
                 done ?
                     <div>
                         {
                             productsPaginator !== null && productsPaginator.objects.length !== 0 ?
                                 <main>
-                                    <Search search={searchMenu}/>
                                     <div
                                         className="md:max-w-xl mt-8 lg:max-w-7xl md:mx-auto w-full px-4 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {
@@ -72,7 +72,7 @@ const DisplayMenu = ({menuUrlAction}: DisplayMenuPropsType) => {
                                     <Paginator paginator={productsPaginator.paginator} changePage={changePage}/>
                                 </main>
                                 :
-                                <h2 className="lg:text-4xl text-3xl font-extrabold dark:text-white text-center mb-8">
+                                <h2 className="lg:text-4xl mt-4 text-3xl font-extrabold dark:text-white text-center mb-8">
                                     Товары не найдены
                                 </h2>
                         }

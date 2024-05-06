@@ -69,7 +69,9 @@ dark:hover:bg-gray-700">
                                             </a>)
                                     }
                                 </div> :
-                                <h1>Рестораны не найдены</h1>
+                                <h2 className="lg:text-4xl mt-4 text-3xl font-extrabold dark:text-white text-center mb-8">
+                                    Рестораны не найдены
+                                </h2>
                         }
                     </div>
                     :
